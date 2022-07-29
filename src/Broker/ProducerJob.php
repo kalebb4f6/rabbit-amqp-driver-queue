@@ -24,7 +24,9 @@ abstract class ProducerJob implements ShouldQueue
             env("RABBITMQ_PASSWORD")
         );
         $channel = $connection->channel();
-
+        
+        $channel->queue_declare($queueName, false, true, false, false);
+        
         $channel->exchange_declare($exchange, 'direct', false, false, true);
         $channel->queue_bind($queueName, $exchange, $routingKey);
 
