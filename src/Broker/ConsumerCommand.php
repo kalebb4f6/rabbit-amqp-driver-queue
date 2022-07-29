@@ -8,6 +8,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 abstract class ConsumerCommand extends Command
 {
     protected $queue = 'default';
+    protected $exchanges = [];
     protected $exchange = '';
     protected $routingKeys = [];
     protected $consumerTag = '';
@@ -30,11 +31,12 @@ abstract class ConsumerCommand extends Command
         );
         $channel = $connection->channel();
         $channel->queue_declare($this->queue, false, true, false, false);
-        $channel->exchange_declare($this->exchange, 'direct');
 
-        foreach($this->routingKeys as $routingKey)
-            $channel->queue_bind($this->queue, $this->exchange, $routingKey);
-
+        if (empty($this->exchanges)) {
+            $this->onlyOneExchange($channel);
+        } else {
+            $this->loadExchanges($channel);
+        }
         $channel->basic_consume($this->queue,
             $this->consumerTag,
             false,
@@ -48,5 +50,25 @@ abstract class ConsumerCommand extends Command
         }
 
         return 0;
+    }
+
+    private function onlyOneExchange($channel)
+    {
+        $channel->exchange_declare($this->exchange, 'direct');
+
+        foreach($this->routingKeys as $routingKey)
+            $channel->queue_bind($this->queue, $this->exchange, $routingKey);
+
+    }
+
+    private function loadExchanges($channel)
+    {
+        foreach($this->exchanges as $exchange => $routingKeys) {
+            
+            $channel->exchange_declare($exchange, 'direct');
+            
+            foreach($routingKeys as $routingKey)
+                $channel->queue_bind($this->queue, $exchange, $routingKey);
+        }
     }
 }
