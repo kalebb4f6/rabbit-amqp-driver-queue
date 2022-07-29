@@ -9,7 +9,7 @@ abstract class ConsumerCommand extends Command
 {
     protected $queue = 'default';
     protected $exchange = '';
-    protected $routingKey = '';
+    protected $routingKeys = [];
     protected $consumerTag = '';
 
     abstract public function messageReceived(AMQPMessage $msg, $channel, $connection);
@@ -31,8 +31,9 @@ abstract class ConsumerCommand extends Command
         $channel = $connection->channel();
         $channel->queue_declare($this->queue, false, true, false, false);
         $channel->exchange_declare($this->exchange, 'direct');
-        
-        $channel->queue_bind($this->queue, $this->exchange, $this->routingKey);
+
+        foreach($this->routingKeys as $routingKey)
+            $channel->queue_bind($this->queue, $this->exchange, $routingKey);
 
         $channel->basic_consume($this->queue,
             $this->consumerTag,
