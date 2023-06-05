@@ -15,7 +15,7 @@ abstract class ProducerJob implements ShouldQueue
      *
      * @return void
      */
-    public function send(string $queueName, string $routingKey, array $content = [], string $exchange = '')
+    public function send(string $exchange, string $routingKey, array $content = [])
     {
         $connection = new \PhpAmqpLib\Connection\AMQPStreamConnection(
             env("RABBITMQ_HOST"),
@@ -27,7 +27,7 @@ abstract class ProducerJob implements ShouldQueue
 
         $channel->exchange_declare($exchange, 'direct', false, false, true);
 
-        $rabbitMsg = new \PhpAmqpLib\Message\AMQPMessage(json_encode($content));
+        $rabbitMsg = new \PhpAmqpLib\Message\AMQPMessage(json_encode($content, JSON_UNESCAPED_UNICODE));
         $channel->basic_publish($rabbitMsg, $exchange, $routingKey);
         $channel->close();
         $connection->close();
